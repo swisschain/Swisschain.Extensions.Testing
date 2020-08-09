@@ -17,8 +17,6 @@ jobs:
         dotnet-version: 3.1.100
     - name: Build
       run: dotnet build --configuration Release
-    - name: Test
-      run: dotnet test --no-build --configuration Release
     - name: Pack
       run: dotnet pack --include-symbols --include-source --configuration Release src/Swisschain.Extensions.Testing /p:Version=${GITHUB_REF#refs/tags/}
     - name: Publish
