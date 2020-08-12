@@ -9,18 +9,25 @@ namespace Swisschain.Extensions.Testing
 {
     public class PostgresFixture : IAsyncLifetime
     {
-        private readonly PostgresContainer _container;
         private readonly ConcurrentBag<NpgsqlConnection> _testDbConnections;
 
         public PostgresFixture(string postgresContainerName = "tests-pg")
         {
-            _container = new PostgresContainer(postgresContainerName, PortManager.GetNextPort());
+            Container = new PostgresContainer(postgresContainerName, PortManager.GetNextPort());
+
             _testDbConnections = new ConcurrentBag<NpgsqlConnection>();
         }
 
-        public async Task<NpgsqlConnection> CreateConnection(bool manageDisposing = false)
+        public PostgresContainer Container { get; }
+
+        public string GetConnectionString(string dbName = "test_db")
         {
-            var connection = new NpgsqlConnection(_container.GetConnectionString("test_db"));
+            return Container.GetConnectionString(dbName);
+        }
+
+        public async Task<NpgsqlConnection> CreateConnection(string dbName = "test_db", bool manageDisposing = false)
+        {
+            var connection = new NpgsqlConnection(GetConnectionString(dbName));
 
             await connection.OpenAsync();
 
@@ -32,14 +39,14 @@ namespace Swisschain.Extensions.Testing
             return connection;
         }
 
-        public async Task CreateTestDb()
+        public async Task CreateTestDb(string name = "test_db")
         {
-            await using var connection = new NpgsqlConnection(_container.MainDbConnectionString);
+            await using var connection = new NpgsqlConnection(Container.MainDbConnectionString);
 
-            await connection.ExecuteAsync("create database test_db");
+            await connection.ExecuteAsync($"create database {name}");
         }
 
-        public async Task DropTestDb()
+        public async Task DropTestDb(string name = "test_db")
         {
             foreach (var testDbConnection in _testDbConnections)
             {
@@ -49,25 +56,25 @@ namespace Swisschain.Extensions.Testing
 
             _testDbConnections.Clear();
 
-            await using var connection = new NpgsqlConnection(_container.MainDbConnectionString);
+            await using var connection = new NpgsqlConnection(Container.MainDbConnectionString);
 
-            var query = @"
+            var query = @$"
                 -- Disallow new connections
-                update pg_database set datallowconn = 'false' where datname = 'test_db';
-                alter database test_db connection limit 1;
+                update pg_database set datallowconn = 'false' where datname = '{name}';
+                alter database {name} connection limit 1;
 
                 -- Terminate existing connections
-                select pg_terminate_backend(pid) from pg_stat_activity where datname = 'test_db';
+                select pg_terminate_backend(pid) from pg_stat_activity where datname = '{name}';
 
                 -- Drop database
-                drop database test_db";
+                drop database {name}";
 
             await connection.ExecuteAsync(query);
         }
 
         public async Task InitializeAsync()
         {
-            await _container.Start();
+            await Container.Start();
         }
 
         public async Task DisposeAsync()
@@ -77,7 +84,7 @@ namespace Swisschain.Extensions.Testing
                 await connection.DisposeAsync();
             }
 
-            _container.Stop();
+            Container.Stop();
         }
     }
 }
