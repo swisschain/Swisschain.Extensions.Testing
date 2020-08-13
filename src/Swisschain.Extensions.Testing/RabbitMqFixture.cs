@@ -17,15 +17,27 @@ namespace Swisschain.Extensions.Testing
         public string User => _container.User;
         public string Password => _container.Password;
 
-        public async Task InitializeAsync()
+        async Task IAsyncLifetime.InitializeAsync()
         {
             await _container.Start();
+
+            await InitializeAsync();
         }
 
-        public Task DisposeAsync()
+        protected virtual Task InitializeAsync()
         {
-            _container.Stop();
+            return Task.CompletedTask;
+        }
 
+        async Task IAsyncLifetime.DisposeAsync()
+        {
+            await DisposeAsync();
+
+            _container.Stop();
+        }
+
+        protected virtual Task DisposeAsync()
+        {
             return Task.CompletedTask;
         }
     }

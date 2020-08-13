@@ -72,19 +72,33 @@ namespace Swisschain.Extensions.Testing
             await connection.ExecuteAsync(query);
         }
 
-        public async Task InitializeAsync()
+        async Task IAsyncLifetime.InitializeAsync()
         {
             await Container.Start();
+
+            await InitializeAsync();
         }
 
-        public async Task DisposeAsync()
+        protected virtual Task InitializeAsync()
         {
+            return Task.CompletedTask;
+        }
+
+        async Task IAsyncLifetime.DisposeAsync()
+        {
+            await DisposeAsync();
+
             foreach (var connection in _testDbConnections)
             {
                 await connection.DisposeAsync();
             }
 
             Container.Stop();
+        }
+
+        protected virtual Task DisposeAsync()
+        {
+            return Task.CompletedTask;
         }
     }
 }
