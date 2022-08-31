@@ -13,7 +13,7 @@ using Swisschain.Extensions.Testing.DockerContainers.Postgres;
 
 namespace Swisschain.Extensions.Testing
 {
-public abstract class PostgresWebApplicationFactory<TStartup, TDatabaseContext> : WebApplicationFactory<TStartup> 
+    public abstract class PostgresWebApplicationFactory<TStartup, TDatabaseContext> : WebApplicationFactory<TStartup> 
         where TStartup: class
         where TDatabaseContext : DbContext
     {
