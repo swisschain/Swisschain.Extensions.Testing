@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Dapper;
+using Grpc.Net.Client;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
+using Serilog;
+using Serilog.Sinks.InMemory;
 using Swisschain.Extensions.Testing.DockerContainers.Postgres;
+using Xunit.Abstractions;
 
 namespace Swisschain.Extensions.Testing
 {
@@ -52,6 +56,15 @@ namespace Swisschain.Extensions.Testing
 
             return connection;
         }
+        
+        public DbContextOptions<TDatabaseContext> CreateDatabaseContextOptions()
+        {
+            return CreateDbContextOptionsBuilder(GetConnectionString(),
+                    GetMigrationHistoryTableName(),
+                    GetSchemaName(),
+                    new NullLoggerFactory())
+                .Options;
+        }
 
         public void CreateTestDb(string name = DefaultDbName)
         {
@@ -84,11 +97,27 @@ namespace Swisschain.Extensions.Testing
             connection.Execute(query);
         }
 
+        public GrpcChannel CreateGrpcChannel()
+        {
+            var options = new GrpcChannelOptions { HttpHandler = Server.CreateHandler() };
+            return GrpcChannel.ForAddress( Server.BaseAddress, options);
+        }
+        
+        public void ShowServerLogs(ITestOutputHelper outputHelper)
+        {
+            foreach (var logEvent in InMemorySink.Instance.LogEvents)
+            {
+                outputHelper.WriteLine($"[{logEvent.Level}]: {logEvent.RenderMessage()} {logEvent.Exception}");
+            }
+        }
+
         protected abstract override IHostBuilder CreateHostBuilder();
         
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
+
+            builder.UseSerilog((ctx, conf) => conf.WriteTo.InMemory());
 
             Container.Start().GetAwaiter().GetResult();
 
