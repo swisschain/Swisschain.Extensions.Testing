@@ -2,7 +2,7 @@ using System.Net.Http;
 using Serilog.Sinks.InMemory;
 using Xunit.Abstractions;
 
-namespace Swisschain.Extensions.Testing
+namespace Swisschain.Extensions.Testing.WebApplicationFactory
 {
     public static class HttpResponseAssertionExtensions
     {

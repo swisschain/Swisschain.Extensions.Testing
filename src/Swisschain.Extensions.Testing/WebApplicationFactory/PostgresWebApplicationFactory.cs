@@ -15,7 +15,7 @@ using Serilog.Sinks.InMemory;
 using Swisschain.Extensions.Testing.DockerContainers.Postgres;
 using Xunit.Abstractions;
 
-namespace Swisschain.Extensions.Testing
+namespace Swisschain.Extensions.Testing.WebApplicationFactory
 {
     public abstract class PostgresWebApplicationFactory<TStartup, TDatabaseContext> : WebApplicationFactory<TStartup> 
         where TStartup: class
