@@ -82,3 +82,49 @@ public class SamplePostgresWebApplicationFactoryTests : IClassFixture<ServiceNam
 Please refer to the documentation on WebApplicationFactory-based integration test in AspNetCore
 for information on way of configuring and troubleshooting the web part of this set up:
 https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-5.0
+
+Testing of gRPC endpoints is also supported. Please refer to the following example:
+```c#
+    public class SamplePostgresWebApplicationFactoryTests : IClassFixture<ServiceNamePostgresWebApplicationFactory<Startup>>
+    {
+        private readonly ServiceNamePostgresWebApplicationFactory<Startup> _factory;
+        private readonly ITestOutputHelper _testOutputHelper;
+
+        public SamplePostgresWebApplicationFactoryTests(
+            ServiceNamePostgresWebApplicationFactory<Startup> factory,
+            ITestOutputHelper testOutputHelper)
+        {
+            _factory = factory;
+            _testOutputHelper = testOutputHelper;
+        }
+
+        [Fact]
+        public async Task Grpc_Works()
+        {
+            //Arrange
+            using var channel = _factory.CreateGrpcChannel();
+            var client = new Users.UsersClient(channel);
+            
+            // Act
+            CreateUserResponse result = null;
+            try
+            {
+                result = await client.CreateAsync(new CreateUserRequest()
+                {
+                    TextId = "text",
+                    RequestId = Guid.NewGuid().ToString(),
+                    OtherAttribute = Guid.NewGuid().ToString()
+                });
+            }
+            catch (RpcException e)
+            {
+                _factory.ShowServerLogs(_testOutputHelper);
+                throw;
+            }
+            
+            //Assert
+            Assert.Equal("text", result.User.TextId);
+        }
+    }
+}
+```
