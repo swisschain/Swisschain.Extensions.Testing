@@ -201,10 +201,10 @@ namespace Swisschain.Extensions.Testing.WebApplicationFactory
 
         protected override void Dispose(bool disposing)
         {
-            base.Dispose(disposing);
-            
             var testHarness = Services.GetRequiredService<InMemoryTestHarness>();
             testHarness.Stop().GetAwaiter().GetResult();
+            
+            base.Dispose(disposing);
 
             DropTestDb();
 
