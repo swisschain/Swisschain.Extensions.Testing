@@ -1,7 +1,12 @@
+using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
+using Grpc.Core;
 using Grpc.Net.Client;
+using MassTransit;
+using MassTransit.Testing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +17,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using Serilog;
 using Serilog.Sinks.InMemory;
+using Swisschain.Extensions.MassTransit;
 using Swisschain.Extensions.Testing.DockerContainers.Postgres;
 using Xunit.Abstractions;
 
@@ -138,6 +144,9 @@ namespace Swisschain.Extensions.Testing.WebApplicationFactory
                 // remove pending migrations checker
                 x.RemoveDbSchemaValidationHost();
                 
+                // remove mass transit registrations and register anew with in-memory impl
+                x.ReconfigureMassTransitInMemory();
+                
                 ConfigureServicesEx(x);
             });
         }
@@ -158,10 +167,44 @@ namespace Swisschain.Extensions.Testing.WebApplicationFactory
                 builder => builder.MigrationsHistoryTable(migrationHistoryTableName, schemaName));
             return optionsBuilder;
         }
+        
+        public TResponse CallGrpcWithLogging<TResponse>(Func<TResponse> callDelegate,
+            ITestOutputHelper testOutputHelper)
+        {
+            try
+            {
+                var grpcResponse = callDelegate();
+                return grpcResponse;
+            }
+            catch (RpcException)
+            {
+                ShowServerLogs(testOutputHelper);
+                throw;
+            }
+        }
+        
+        public TEvent[] GetPublishedEvents<TEvent>() where TEvent : class
+        {
+            var harness = Services.GetRequiredService<InMemoryTestHarness>();
+            return harness.Published.Select<TEvent>()
+                .Select(x => (TEvent)x.MessageObject)
+                .ToArray();
+        }
+
+        public TCommand[] GetSentCommands<TCommand>() where TCommand : class
+        {
+            var harness = Services.GetRequiredService<InMemoryTestHarness>();
+            return harness.Sent.Select<TCommand>()
+                .Select(x => (TCommand)x.MessageObject)
+                .ToArray();
+        }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
+            
+            var testHarness = Services.GetRequiredService<InMemoryTestHarness>();
+            testHarness.Stop().GetAwaiter().GetResult();
 
             DropTestDb();
 

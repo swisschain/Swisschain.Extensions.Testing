@@ -1,6 +1,10 @@
+using System;
 using System.Linq;
+using MassTransit;
+using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Swisschain.Extensions.MassTransit;
 
 namespace Swisschain.Extensions.Testing
 {
@@ -19,6 +23,31 @@ namespace Swisschain.Extensions.Testing
             {
                 services.Remove(descriptor);
             }
+        }
+
+        public static void ReconfigureMassTransitInMemory(this IServiceCollection services)
+        {
+            var descriptors = services.Where(d => 
+                    d.ServiceType.Namespace?.Contains("MassTransit", StringComparison.OrdinalIgnoreCase) == true)
+                .ToList();
+            
+            foreach (var descriptor in descriptors)
+            {
+                services.Remove(descriptor);
+            }
+
+            services.AddMassTransitInMemoryTestHarness();
+            services.AddMassTransitBusHost();
+            services.AddSingleton<IBusControl>(c =>
+            {
+                var testHarness = c.GetRequiredService<InMemoryTestHarness>();
+                if (testHarness.BusControl == null)
+                {
+                    testHarness.Start().GetAwaiter().GetResult();
+                }
+
+                return testHarness.BusControl;
+            });
         }
     }
 }
