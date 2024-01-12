@@ -10,7 +10,6 @@
     <PackageReference Include="Ductus.FluentDocker" Version="2.10.7" />
     <PackageReference Include="Grpc.Net.Client" Version="2.48.0" />
     <PackageReference Include="MassTransit" Version="7.2.4" />
-    <PackageReference Include="MassTransit.Extensions.DependencyInjection" Version="7.2.4" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="5.0.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.9" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0">
