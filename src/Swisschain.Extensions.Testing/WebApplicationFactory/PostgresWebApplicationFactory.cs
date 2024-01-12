@@ -144,9 +144,6 @@ namespace Swisschain.Extensions.Testing.WebApplicationFactory
                 // remove pending migrations checker
                 x.RemoveDbSchemaValidationHost();
                 
-                // remove mass transit registrations and register anew with in-memory impl
-                x.ReconfigureMassTransitInMemory();
-                
                 ConfigureServicesEx(x);
             });
         }
